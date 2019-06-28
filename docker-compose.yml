@@ -1,0 +1,70 @@
+# docker-compose.yml
+version: '3.1'
+services:
+    prometheus:
+        image: prom/prometheus:latest
+        volumes:
+            - ./prometheus.yml:/etc/prometheus/prometheus.yml
+        command:
+            - '--config.file=/etc/prometheus/prometheus.yml'
+        ports:
+            - '9090:9090'
+
+
+    node-exporter:
+        image: prom/node-exporter
+        ports:
+            - '9100:9100'
+
+
+    grafana:
+        image: grafana/grafana:latest
+        environment:
+            - GF_SECURITY_ADMIN_PASSWORD=pass
+        depends_on:
+            - prometheus
+        ports:
+            - '3000:3000'
+
+    cadvisor:
+      image: google/cadvisor:latest
+      container_name: cadvisor
+      ports:
+        - '8080:8080'
+      volumes:
+       - /:/rootfs:ro
+       - /var/run:/var/run:rw
+       - /sys:/sys:ro
+       - /var/lib/docker/:/var/lib/docker:ro
+      depends_on :
+       - wordpress
+
+    db:
+     image: mysql:5.7
+     volumes:
+       - db_data:/var/lib/mysql
+     restart: always
+     environment:
+       MYSQL_ROOT_PASSWORD: somewordpress
+       MYSQL_DATABASE: wordpress
+       MYSQL_USER: wordpress
+       MYSQL_PASSWORD: wordpress
+
+    wordpress:
+     depends_on:
+       - db
+     image: wordpress:latest
+     ports:
+       - "8000:80"
+     restart: always
+     environment:
+       WORDPRESS_DB_HOST: db:3306
+       WORDPRESS_DB_USER: wordpress
+       WORDPRESS_DB_PASSWORD: wordpress
+volumes:
+    db_data:
+
+networks:
+   default:
+     external:
+       name: docker_docker_default
